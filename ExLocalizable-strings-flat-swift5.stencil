@@ -1,0 +1,68 @@
+// Generated using SwiftGen, by O.Halligon — https://github.com/SwiftGen/SwiftGen
+
+{% if tables.count > 0 %}
+{% set accessModifier %}{% if param.publicAccess %}public {% endif %}{% endset %}
+import Foundation
+
+// swiftlint:disable all
+// MARK: - Strings
+{% macro parametersBlock types %}{% filter removeNewlines:"leading" %}
+  {% for type in types %}
+    _ p{{forloop.counter}}: {{type}}{{ ", " if not forloop.last }}
+  {% endfor %}
+{% endfilter %}{% endmacro %}
+{% macro argumentsBlock types %}{% filter removeNewlines:"leading" %}
+  {% for type in types %}
+    {% if type == "UnsafeRawPointer" %}
+    Int(bitPattern: p{{forloop.counter}})
+    {% else %}
+    p{{forloop.counter}}
+    {% endif %}
+    {{ ", " if not forloop.last }}
+  {% endfor %}
+{% endfilter %}{% endmacro %}
+{% macro recursiveBlock table item %}
+  {% for string in item.strings %}
+  {% if not param.noComments %}
+  /// {{string.translation}}
+  {% endif %}
+  {% if string.types %}
+    {{accessModifier}}static func {{string.key|swiftIdentifier:"pretty"|lowerFirstWord|escapeReservedKeywords}}({% call parametersBlock string.types %}) -> String {
+      tr("{{table}}", "{{string.key}}", {% call argumentsBlock string.types %})
+    }
+  {% else %}
+    {{accessModifier}}static let {{string.key|swiftIdentifier:"pretty"|lowerFirstWord|escapeReservedKeywords}} = tr("{{table}}", "{{string.key}}")
+  {% endif %}
+  {% endfor %}
+  {% for child in item.children %}
+  {% call recursiveBlock table child %}
+  {% endfor %}
+{% endmacro %}
+{% set enumName %}{{param.enumName|default:"L10n"}}{% endset %}
+extension String {
+  {{accessModifier}}enum {{enumName}} {
+    {% if tables.count > 1 %}
+    {% for table in tables %}
+    // {{table.name|swiftIdentifier:"pretty"|escapeReservedKeywords}}
+		{% call recursiveBlock table.name table.levels %}
+    {% endfor %}
+    {% else %}
+    {% call recursiveBlock tables.first.name tables.first.levels %}
+		
+    static func getLocalizedString(key: String, _ args: CVarArg...) -> String {
+      tr("{{tables.first.name}}", key, args)
+    }
+    {% endif %}
+		
+    private static func tr(_ table: String, _ key: String, _ args: CVarArg...) -> String {
+      let format = NSLocalizedString(key, tableName: table, bundle: Bundle(for: BundleToken.self), comment: "")
+      return String(format: format, locale: .current, arguments: args)
+    }
+  }
+}
+
+private final class BundleToken {}
+// swiftlint:enable all
+{% else %}
+// No string found
+{% endif %}

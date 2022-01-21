@@ -1,0 +1,12 @@
+input_dir: ExLocalizable/Resources/Localization/
+output_dir: ExLocalizable/Resources/Generated/
+strings:
+  inputs: ./en.lproj
+  filter: .+\Localizable.strings$
+  outputs:
+    - templatePath: ExLocalizable-strings-flat-swift5.stencil
+    # - templateName: flat-swift5
+      output: Strings.swift
+      params:
+        noComments: true
+        enumName: ExLocalizable
